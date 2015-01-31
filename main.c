@@ -31,6 +31,11 @@ typedef struct {
   int x, y;
 }POINT;
 
+void write_BMP(
+	const char *filename,
+	unsigned char *data,
+	int data_size);
+
 void voronoi(
 	unsigned char *data,
 	int width,
@@ -50,6 +55,9 @@ unsigned char* open_bmp(
 	int *height);
 
 #define N_POINTS 30
+
+BMP_HEADER header;
+BMP_INFO info;
 
 int main(int argc, char ** argv) {
   
@@ -83,6 +91,8 @@ int main(int argc, char ** argv) {
 
   voronoi(
    data, width, height, points, N_POINTS, point_mapping);
+
+  write_BMP("poly.bmp", data, width * height);
 
   return 0;
 }
@@ -166,9 +176,6 @@ unsigned char* open_bmp(
 	int *width,
 	int *height) {
 
-  BMP_HEADER header;
-  BMP_INFO info;
-
   FILE *f = fopen(filename ,"rb");
 
   fread(&header, sizeof(BMP_HEADER), 1, f);
@@ -192,3 +199,20 @@ unsigned char* open_bmp(
 
   return data;
 }
+
+void write_BMP(
+	const char *filename,
+	unsigned char *data,
+	int data_size) {
+
+  FILE *file = fopen(filename, "wb");
+  fwrite(&header, sizeof(BMP_HEADER), 1, file);
+  fwrite(&info, sizeof(BMP_INFO), 1, file);
+
+  fwrite(data, 
+	sizeof(unsigned char) * data_size, 
+	1, 
+	file);
+  fclose(file);
+}
+
