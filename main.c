@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 #pragma pack(push, 1)
-
 typedef struct {
  unsigned short int type;
  unsigned int size;
@@ -31,12 +31,13 @@ typedef struct {
   int x, y;
 }POINT;
 
-unsigned char* voronoi(
+void voronoi(
 	unsigned char *data,
 	int width,
 	int height,
-	POINT *points
-	int n_points);
+	POINT *points,
+	int n_points,
+	int *mapping);
 
 POINT* generate_points(
 	int n, 
@@ -48,6 +49,7 @@ unsigned char* open_bmp(
 	int *width,
 	int *height);
 
+#define N_POINTS 30
 
 int main(int argc, char ** argv) {
   
@@ -75,23 +77,67 @@ int main(int argc, char ** argv) {
   }
 
   POINT* points;
-  points = generate_points(30, width, height);
+  points = generate_points(N_POINTS, width, height);
+
+  int *point_mapping = (int*) malloc(width * height);
+
+  voronoi(
+   data, width, height, points, N_POINTS, point_mapping);
 
   return 0;
 }
 
-unsigned char* voronoi(
+void voronoi(
 	unsigned char *data,
 	int width,
 	int height,
 	POINT *points,
-	int n_points) {
+	int n_points,
+	int *mapping) {
+
+  int x, y;
+  for(y=0; y<width; y++) {
+    for(x=0; x<height; x++) {
+      int i;
+      int closest;
+      float closest_dist = width + height; // over max dist
+      for(i=0; i<n_points; i++) {
+        
+        float  dx = x - points[i].x;
+        float  dy = y - points[i].y;
+        
+        float dist = sqrtf(powf(dx, 2) + powf(dy, 2));
+
+        if(dist < closest_dist) {
+          closest = i;
+        }
+      }
+      mapping[x * y] = closest;
+    }
+  }
 
   int i;
-  for(int i=0; i<n_points; i++) {
-    /*TODO Joe: for each point, find pixels closest, then avaerage
-     * those pixels then return the results
-     */
+  for(i=0; i<n_points; i++) {
+    float sum = 0;
+    float mean;
+    float count = 0;
+
+    //find mean of pixels for point i
+    int j;
+    for(j=0; j<width*height; j++) {
+      if(mapping[j] == i) {
+        sum += data[j];
+        count ++;
+      }
+    }
+
+    mean = sum / count;
+
+    for(j=0; j<width*height; j++) {
+      if(mapping[j] == i) {
+        data[j] = (unsigned char) ceilf(mean);
+      }
+    }
   }
 }
 
